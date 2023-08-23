@@ -68,11 +68,21 @@ struct TemporaryDirectory: ~Copyable {
 }
 
 extension Data {
+    // AsyncBytes is Darwin-only :/
+
     init(reading fileHandle: FileHandle) async throws {
+        #if canImport(Darwin)
         self = try await fileHandle.bytes.reduce(into: Data()) { $0.append($1) }
+        #else
+        self = try fileHandle.readToEnd() ?? Data()
+        #endif
     }
 
     init(reading file: URL) async throws {
+        #if canImport(Darwin)
         self = try await file.resourceBytes.reduce(into: Data()) { $0.append($1) }
+        #else
+        try self.init(contentsOf: file)
+        #endif
     }
 }
