@@ -73,6 +73,6 @@ extension Data {
     }
 
     init(reading file: URL) async throws {
-        try await self.init(reading: FileHandle(forReadingFrom: file))
+        self = try await file.resourceBytes.reduce(into: Data()) { $0.append($1) }
     }
 }
