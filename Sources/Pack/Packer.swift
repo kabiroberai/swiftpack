@@ -33,10 +33,12 @@ struct Packer {
                         try await packFile(srcName: "\(package)_\(target).bundle")
                     case .binaryTarget(let name):
                         let src = URL(fileURLWithPath: "\(name).framework/\(name)", relativeTo: binDir)
-                        let magic = Data("!<arch>".utf8)
+                        let magic = Data("!<arch>\n".utf8)
+                        let thinMagic = Data("!<thin>\n".utf8)
                         let bytes = try FileHandle(forReadingFrom: src).read(upToCount: magic.count)
-                        // if the magic matches !<arch> it's a static archive; we don't need to copy it.
-                        if magic != bytes {
+                        // if the magic matches one of these it's a static archive; don't embed it.
+                        // https://github.com/apple/llvm-project/blob/e716ff14c46490d2da6b240806c04e2beef01f40/llvm/include/llvm/Object/Archive.h#L33
+                        if bytes != magic && bytes != thinMagic {
                             try await packFile(srcName: "\(name).framework", dstName: "Frameworks/\(name).framework", sign: true)
                         }
                     case .library(let name):

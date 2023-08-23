@@ -10,7 +10,7 @@ struct Planner {
     }()
 
     func createPlan() async throws -> Plan {
-        // TODO: cache plan over (Package.swift+Package.resolved)?
+        // TODO: cache plan using (Package.swift+Package.resolved) as the key?
 
         let dependencyData = try await _dumpAction(
             arguments: ["show-dependencies", "--format", "json"],
@@ -36,7 +36,7 @@ struct Planner {
                 case .success((let dependency, let dump)):
                     packages[dependency.identity] = dump
                 case .failure(_ as CancellationError):
-                    // continue
+                    // continue loop
                     break
                 case .failure(let error):
                     group.cancelAll()
