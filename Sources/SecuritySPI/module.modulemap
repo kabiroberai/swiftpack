@@ -1,0 +1,5 @@
+module SecuritySPI {
+    umbrella header "SecuritySPI.h"
+    link framework "Security"
+    module * { export * }
+}
