@@ -6,6 +6,15 @@ import Foundation
         context: PluginContext,
         arguments: [String]
     ) async throws {
+        var packageByTargetID: [Target.ID: Package] = [:]
+        var packageStack = [context.package]
+        while let package = packageStack.popLast() {
+            for target in package.targets {
+                packageByTargetID[target.id] = package
+            }
+            packageStack.append(contentsOf: package.dependencies.map(\.package))
+        }
+
         let executables = context.package.dependencies[0].package.products(ofType: ExecutableProduct.self)
         let executable: ExecutableProduct
         if executables.count == 1 {
@@ -14,30 +23,24 @@ import Foundation
             throw StringError("Your package should include 1 executable product")
         }
 
-        guard let sourceModule = executable.mainTarget.sourceModule
-            else { throw StringError("Expected main target to be a source module") }
-        guard let plist = sourceModule.sourceFiles.first(where: {
-            $0.type == .resource && $0.path.lastComponent == "PackInfo.plist"
-        })?.path
-            else { throw StringError("Expected main target to contain a PackInfo.plist") }
-
         var planResources: [Resource] = []
         var targets = executable.targets
         // this is depth-first but that's okay because we scan everything
         while let target = targets.popLast() {
             if let binaryTarget = target as? BinaryArtifactTarget {
-                planResources += [.binaryTarget(name: binaryTarget.name)]
-            } else if let sourceTarget = target as? SourceModuleTarget {
-                planResources += sourceTarget.sourceFiles
-                    .filter { $0.type == .resource }
-                    .map(\.path)
-                    .map { $0 == plist ? .infoPlist(path: $0.string) : .normal(path: $0.string) }
+                planResources.append(.binaryTarget(name: binaryTarget.name))
+            } else if let sourceTarget = target as? SourceModuleTarget,
+                sourceTarget.sourceFiles.contains(where: { $0.type == .resource }) {
+                guard let package = packageByTargetID[sourceTarget.id] else {
+                    throw StringError("internal inconsistency: could not determine package for target id=\(sourceTarget.id)")
+                }
+                planResources.append(.bundle(package: package.displayName, target: target.name))
             }
             for dependency in target.dependencies {
                 switch dependency {
                 case .product(let product):
                     if let dylib = product as? LibraryProduct, dylib.kind == .dynamic {
-                        planResources += [.library(name: dylib.name)]
+                        planResources.append(.library(name: dylib.name))
                     }
                     targets.append(contentsOf: product.targets)
                 case .target(let target):

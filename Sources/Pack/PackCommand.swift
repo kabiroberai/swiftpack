@@ -25,7 +25,14 @@ struct PackCommand: AsyncParsableCommand {
         help: "The target triple to build for"
     ) var triple = "arm64-apple-ios"
 
-    // MARK: - Signing options
+    // MARK: - Packaging options
+
+    @Option(
+        help: "Path to the Info plist",
+        completion: .file(extensions: ["plist"]),
+        transform: URL.init(fileURLWithPath:)
+    )
+    var info: URL = URL(fileURLWithPath: "Info.plist")
 
     @Option(
         help: "Path to the entitlements plist",
@@ -75,7 +82,11 @@ struct PackCommand: AsyncParsableCommand {
 
         let builder = swiftPMSettings.invocation(
             forTool: "build",
-            arguments: ["--package-path", packagePath, "--product", plan.product]
+            arguments: [
+                "--package-path", packagePath,
+                "--product", plan.product,
+                "-Xlinker", "-rpath", "-Xlinker", "@executable_path/Frameworks",
+            ]
         )
         try builder.run()
         await builder.waitForExit()
@@ -90,10 +101,11 @@ struct PackCommand: AsyncParsableCommand {
         let profileData = if let profile { try await Data(reading: profile) } else { Data?.none }
         let packer = Packer(
             plan: plan,
-            profile: profileData,
-            entitlements: entitlements,
+            info: info,
+            binDir: binDir,
             signer: signer,
-            binDir: binDir
+            profile: profileData,
+            entitlements: entitlements
         )
         let output = try await packer.pack()
 

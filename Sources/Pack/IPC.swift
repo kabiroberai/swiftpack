@@ -7,8 +7,7 @@ struct Plan: Codable {
 }
 
 enum Resource: Codable {
-    case normal(path: String)
-    case infoPlist(path: String)
+    case bundle(package: String, target: String)
     case binaryTarget(name: String)
     case library(name: String)
 }
