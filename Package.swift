@@ -14,7 +14,6 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.2.3"),
-        // .package(path: "swiftpack-support"),
     ],
     targets: [
         .systemLibrary(name: "SecuritySPI"),
@@ -23,8 +22,7 @@ let package = Package(
             dependencies: [
                 "SecuritySPI",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-            ],
-            resources: [.embedInCode("swiftpack-support.tar.gz")]
+            ]
         ),
     ]
 )

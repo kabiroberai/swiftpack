@@ -72,18 +72,20 @@ struct PackCommand: AsyncParsableCommand {
 
     func run() async throws {
         print("Planning...")
-        let swiftPMSettings = SwiftPMSettings(options: [
-            "--configuration", configuration.rawValue,
-            "--experimental-swift-sdk", triple
-        ])
+        let swiftPMSettings = SwiftPMSettings(
+            packagePath: packagePath,
+            options: [
+                "--configuration", configuration.rawValue,
+                "--experimental-swift-sdk", triple
+            ]
+        )
 
         let planner = Planner(swiftPMSettings: swiftPMSettings)
-        let plan = try await planner.createPlan(packagePath: packagePath)
+        let plan = try await planner.createPlan()
 
         let builder = swiftPMSettings.invocation(
             forTool: "build",
             arguments: [
-                "--package-path", packagePath,
                 "--product", plan.product,
                 "-Xlinker", "-rpath", "-Xlinker", "@executable_path/Frameworks",
             ]

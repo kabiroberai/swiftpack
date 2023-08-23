@@ -7,11 +7,13 @@ struct SwiftPMSettings {
 
     private static let envURL = URL(fileURLWithPath: "/usr/bin/env")
 
+    var packagePath: String = "."
     var options: [String] = []
 
     func invocation(
         forTool tool: String,
-        arguments: [String]
+        arguments: [String],
+        packagePathOverride: String? = nil
     ) -> Process {
         let process = Process()
         process.executableURL = Self.envURL
@@ -20,7 +22,7 @@ struct SwiftPMSettings {
         } else {
             ["swift", tool]
         }
-        process.arguments = base + options + arguments
+        process.arguments = base + ["--package-path", packagePathOverride ?? packagePath] + options + arguments
         return process
     }
 }
