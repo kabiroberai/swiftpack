@@ -10,14 +10,23 @@ struct Planner {
             relativeTo: URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         ).standardized
 
-        let tmp = package.appendingPathComponent(".build/swiftpack/planner")
-        try? FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+        // copy swiftpack-support to .build/swiftpack/planner, creating the directory afresh
+        // but preserving its own .build cache
+        let swiftpackDir = package.appendingPathComponent(".build/swiftpack", isDirectory: true)
+        let tmp = swiftpackDir.appendingPathComponent("planner")
+        let tmpBuild = tmp.appendingPathComponent(".build")
+        let cachedBuild = swiftpackDir.appendingPathComponent("tmpBuild")
+        try? FileManager.default.moveItem(at: tmpBuild, to: cachedBuild)
+        try? FileManager.default.removeItem(at: tmp)
+        try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+        try? FileManager.default.moveItem(at: cachedBuild, to: tmpBuild)
 
         let tarInput = Pipe()
         let tar = Process()
         tar.standardInput = tarInput
         tar.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        tar.arguments = ["tar", "-C", tmp.path, "-xzf", "-"]
+        tar.arguments = ["tar", "-xz"]
+        tar.currentDirectoryURL = tmp
         try tar.run()
         try tarInput.fileHandleForWriting.write(contentsOf: PackageResources.swiftpack_support_tar_gz)
         try tarInput.fileHandleForWriting.close()
