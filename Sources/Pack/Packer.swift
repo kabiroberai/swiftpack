@@ -32,7 +32,13 @@ struct Packer {
                     case .bundle(let package, let target):
                         try await packFile(srcName: "\(package)_\(target).bundle")
                     case .binaryTarget(let name):
-                        try await packFile(srcName: "\(name).framework", dstName: "Frameworks/\(name).framework", sign: true)
+                        let src = URL(fileURLWithPath: "\(name).framework/\(name)", relativeTo: binDir)
+                        let magic = Data("!<arch>".utf8)
+                        let bytes = try FileHandle(forReadingFrom: src).read(upToCount: magic.count)
+                        // if the magic matches !<arch> it's a static archive; we don't need to copy it.
+                        if magic != bytes {
+                            try await packFile(srcName: "\(name).framework", dstName: "Frameworks/\(name).framework", sign: true)
+                        }
                     case .library(let name):
                         try await packFile(srcName: "lib\(name).dylib", dstName: "Frameworks/lib\(name).dylib", sign: true)
                     }
