@@ -30,8 +30,11 @@ struct CodesignSigner: Signer {
             kSecAttrKeyClass: kSecAttrKeyClassPrivate,
             kSecAttrKeyType: kSecAttrKeyTypeRSA
         ] as CFDictionary, &error)
-        if let error { throw error.takeUnretainedValue() }
+        // libsecurity returns errors as owned (+1)
+        if let error { throw error.takeRetainedValue() }
 
+        // we use this SPI instead of SecPKCS12Import because the latter
+        // mutates the user's keychain
         guard let identity = SecIdentityCreate(nil, certificate, key) else {
             throw StringError("Failed to create signing identity")
         }
