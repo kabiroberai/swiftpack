@@ -1,12 +1,16 @@
 import Foundation
+import X509
 
 struct Packer {
-    let plan: Plan
-    let info: URL
-    let binDir: URL
-    let signer: any Signer
-    let profile: Data?
-    let entitlements: URL?
+    var plan: Plan
+    var info: URL
+    var binDir: URL
+
+    var certificate: Certificate
+    var key: Certificate.PrivateKey
+    var profile: Data?
+    var entitlements: Data?
+    var signer: any Signer = .default
 
     func pack() async throws -> URL {
         let output = try TemporaryDirectory(name: "\(plan.product).app")
@@ -21,7 +25,7 @@ struct Packer {
             try Task.checkCancellation()
 
             if sign {
-                try await signer.codesign(url: dstURL, entitlements: nil)
+                try await signer.codesign(url: dstURL, certificate: certificate, key: key, entitlements: nil)
             }
         }
 
@@ -66,7 +70,7 @@ struct Packer {
                 }
             }
         }
-        try await signer.codesign(url: output.url, entitlements: entitlements)
+        try await signer.codesign(url: output.url, certificate: certificate, key: key, entitlements: entitlements)
 
         let dest = URL(fileURLWithPath: output.url.lastPathComponent)
         try? FileManager.default.removeItem(at: dest)

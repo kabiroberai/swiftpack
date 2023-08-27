@@ -1,5 +1,8 @@
 import Foundation
 import ArgumentParser
+import X509
+import SwiftASN1
+import _CryptoExtras
 
 struct PackCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(commandName: "swiftpack")
@@ -95,19 +98,18 @@ struct PackCommand: AsyncParsableCommand {
         let binDir = URL(fileURLWithPath: packagePath, isDirectory: true)
             .appendingPathComponent(".build/\(triple)/\(configuration.rawValue)", isDirectory: true)
 
-        async let certData = try await Data(reading: certificate)
-        async let keyData = try await Data(reading: key)
-        // TODO: Support non-codesign signers (ldid?)
-        let signer = try await CodesignSigner(certificate: certData, privateKey: keyData)
-
-        let profileData = if let profile { try await Data(reading: profile) } else { Data?.none }
-        let packer = Packer(
+        async let parsedCert = Certificate(derEncoded: DER.parse(Array(Data(reading: certificate))))
+        async let parsedKey = Certificate.PrivateKey(_RSA.Signing.PrivateKey(derRepresentation: Data(reading: key)))
+        async let profileData = { if let profile { try await Data(reading: profile) } else { Data?.none } }()
+        async let entsData = { if let entitlements { try await Data(reading: entitlements) } else { Data?.none } }()
+        let packer = try await Packer(
             plan: plan,
             info: info,
             binDir: binDir,
-            signer: signer,
+            certificate: parsedCert,
+            key: parsedKey,
             profile: profileData,
-            entitlements: entitlements
+            entitlements: entsData
         )
         let output = try await packer.pack()
 
