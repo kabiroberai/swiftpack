@@ -1,13 +1,11 @@
 import Foundation
-import X509
 
 struct Packer {
     var plan: Plan
     var info: URL
     var binDir: URL
 
-    var certificate: Certificate
-    var key: Certificate.PrivateKey
+    var identity: SigningIdentity
     var profile: Data?
     var entitlements: Data?
     var signer: any Signer = .default
@@ -25,7 +23,7 @@ struct Packer {
             try Task.checkCancellation()
 
             if sign {
-                try await signer.codesign(url: dstURL, certificate: certificate, key: key, entitlements: nil)
+                try await signer.codesign(url: dstURL, identity: identity, entitlements: nil)
             }
         }
 
@@ -70,7 +68,7 @@ struct Packer {
                 }
             }
         }
-        try await signer.codesign(url: output.url, certificate: certificate, key: key, entitlements: entitlements)
+        try await signer.codesign(url: output.url, identity: identity, entitlements: entitlements)
 
         let dest = URL(fileURLWithPath: output.url.lastPathComponent)
         try? FileManager.default.removeItem(at: dest)

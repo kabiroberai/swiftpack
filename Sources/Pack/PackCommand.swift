@@ -1,8 +1,6 @@
 import Foundation
 import ArgumentParser
 import X509
-import SwiftASN1
-import _CryptoExtras
 
 struct PackCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(commandName: "swiftpack")
@@ -47,7 +45,7 @@ struct PackCommand: AsyncParsableCommand {
     @Option(
         help: .init(
             "Path to signing certficiate",
-            discussion: "The certificate should be a DER encoded, x509."
+            discussion: "The certificate should be PEM encoded."
         ),
         completion: .file(),
         transform: URL.init(fileURLWithPath:)
@@ -57,7 +55,7 @@ struct PackCommand: AsyncParsableCommand {
     @Option(
         help: .init(
             "Path to private key",
-            discussion: "The key should be DER encoded, PKCS1, RSA."
+            discussion: "The key should be PEM encoded."
         ),
         completion: .file(),
         transform: URL.init(fileURLWithPath:)
@@ -98,16 +96,18 @@ struct PackCommand: AsyncParsableCommand {
         let binDir = URL(fileURLWithPath: packagePath, isDirectory: true)
             .appendingPathComponent(".build/\(triple)/\(configuration.rawValue)", isDirectory: true)
 
-        async let parsedCert = Certificate(derEncoded: DER.parse(Array(Data(reading: certificate))))
-        async let parsedKey = Certificate.PrivateKey(_RSA.Signing.PrivateKey(derRepresentation: Data(reading: key)))
+        async let parsedCert = Certificate(pemEncoded: String(decoding: Data(reading: certificate), as: UTF8.self))
+        async let parsedKey = Certificate.PrivateKey(pemEncoded: String(decoding: Data(reading: key), as: UTF8.self))
         async let profileData = { if let profile { try await Data(reading: profile) } else { Data?.none } }()
         async let entsData = { if let entitlements { try await Data(reading: entitlements) } else { Data?.none } }()
         let packer = try await Packer(
             plan: plan,
             info: info,
             binDir: binDir,
-            certificate: parsedCert,
-            key: parsedKey,
+            identity: SigningIdentity(
+                certificate: parsedCert,
+                key: parsedKey
+            ),
             profile: profileData,
             entitlements: entsData
         )

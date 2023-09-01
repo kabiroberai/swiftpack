@@ -6,10 +6,14 @@ protocol Signer {
 
     func codesign(
         url: URL,
-        certificate: Certificate,
-        key: Certificate.PrivateKey,
+        identity: SigningIdentity,
         entitlements: Data?
     ) async throws
+}
+
+struct SigningIdentity {
+    var certificate: Certificate
+    var key: Certificate.PrivateKey
 }
 
 #if canImport(Security)

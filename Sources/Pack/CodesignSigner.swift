@@ -25,9 +25,9 @@ struct CodesignSigner: Signer {
         return EntitlementsBlob(blob: blob).entitlements
     }
 
-    func codesign(url: URL, certificate: Certificate, key: Certificate.PrivateKey, entitlements: Data?) async throws {
-        let secCertificate = try certificate.asSecCertificate()
-        let secKey = try key.asSecKey()
+    func codesign(url: URL, identity: SigningIdentity, entitlements: Data?) async throws {
+        let secCertificate = try identity.certificate.asSecCertificate()
+        let secKey = try identity.key.asSecKey()
         // we use this SPI instead of SecPKCS12Import because the latter
         // mutates the user's keychain
         guard let identity = SecIdentityCreate(nil, secCertificate, secKey) else {
@@ -59,7 +59,7 @@ struct CodesignSigner: Signer {
 }
 
 private struct EntitlementsBlob {
-    let blob: Data
+    var entitlements: Data
 }
 
 // libsecurity represents entitlements as `Blob`s: magic + length + data
@@ -67,18 +67,22 @@ extension EntitlementsBlob {
     private static let headerSize = MemoryLayout<UInt32>.size + MemoryLayout<UInt32>.size
     private static let magic: UInt32 = 0xfade7171
 
-    init(entitlements: Data) {
-        let entitlementsLen = Self.headerSize + entitlements.count
-        var data = Data()
-        data.reserveCapacity(entitlementsLen)
-        data.append(contentsOf: Self.magic.bigEndianBytes)
-        data.append(contentsOf: UInt32(entitlementsLen).bigEndianBytes)
-        data.append(entitlements)
-        self.blob = data
+    init(blob: Data) {
+        self.entitlements = Data()
+        self.blob = blob
     }
 
-    var entitlements: Data {
-        blob[Self.headerSize...]
+    var blob: Data {
+        get {
+            let blobSize = UInt32(Self.headerSize + entitlements.count)
+            var blob = entitlements
+            blob.insert(contentsOf: [
+                Self.magic.bigEndianBytes,
+                blobSize.bigEndianBytes
+            ].joined(), at: 0)
+            return blob
+        }
+        set { entitlements = newValue[Self.headerSize...] }
     }
 }
 #endif
