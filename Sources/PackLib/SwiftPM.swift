@@ -1,16 +1,21 @@
 import Foundation
 
-struct SwiftPMSettings {
+public struct SwiftPMSettings: Sendable {
     private static let customBinDir =
         // this is the same option used by SwiftPM itself for dev builds
         ProcessInfo.processInfo.environment["SWIFTPM_CUSTOM_BIN_DIR"].map { URL(fileURLWithPath: $0) }
 
     private static let envURL = URL(fileURLWithPath: "/usr/bin/env")
 
-    var packagePath: String = "."
-    var options: [String] = []
+    public var packagePath: String = "."
+    public var options: [String] = []
 
-    func invocation(
+    public init(packagePath: String, options: [String]) {
+        self.packagePath = packagePath
+        self.options = options
+    }
+
+    public func invocation(
         forTool tool: String,
         arguments: [String],
         packagePathOverride: String? = nil

@@ -19,7 +19,11 @@ let package = Package(
             name: "Pack",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                "PackLib",
             ]
+        ),
+        .target(
+            name: "PackLib"
         ),
     ]
 )

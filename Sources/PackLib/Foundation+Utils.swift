@@ -5,7 +5,7 @@ extension Process {
     ///
     /// - Parameter onCancel: The action to take if the current
     /// task is cancelled.
-    func waitForExit(onCancel: TaskCancelAction = .interrupt) async {
+    public func waitForExit(onCancel: TaskCancelAction = .interrupt) async {
         await withTaskCancellationHandler {
             let oldHandler = terminationHandler
             await withCheckedContinuation { continuation in
@@ -26,7 +26,7 @@ extension Process {
         }
     }
 
-    enum TaskCancelAction {
+    public enum TaskCancelAction: Sendable {
         /// Sends `SIGINT` to the process.
         case interrupt
         /// Sends `SIGTERM` to the process.

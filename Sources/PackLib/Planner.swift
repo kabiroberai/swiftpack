@@ -1,7 +1,11 @@
 import Foundation
 
-struct Planner {
-    var swiftPMSettings: SwiftPMSettings
+public struct Planner: Sendable {
+    public var swiftPMSettings: SwiftPMSettings
+
+    public init(swiftPMSettings: SwiftPMSettings) {
+        self.swiftPMSettings = swiftPMSettings
+    }
 
     private static let decoder: JSONDecoder = {
         let decoder = JSONDecoder()
@@ -9,7 +13,7 @@ struct Planner {
         return decoder
     }()
 
-    func createPlan() async throws -> Plan {
+    public func createPlan() async throws -> Plan {
         // TODO: cache plan using (Package.swift+Package.resolved) as the key?
 
         let dependencyData = try await _dumpAction(
@@ -121,12 +125,12 @@ struct Planner {
     }
 }
 
-struct Plan: Codable {
-    let product: String
-    let resources: [Resource]
+public struct Plan: Codable, Sendable {
+    public var product: String
+    public var resources: [Resource]
 }
 
-enum Resource: Codable {
+public enum Resource: Codable, Sendable {
     case bundle(package: String, target: String)
     case binaryTarget(name: String)
     case library(name: String)

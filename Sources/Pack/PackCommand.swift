@@ -1,5 +1,6 @@
 import Foundation
 import ArgumentParser
+import PackLib
 
 struct PackCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(commandName: "swiftpack")

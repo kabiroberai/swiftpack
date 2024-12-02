@@ -1,11 +1,17 @@
 import Foundation
 
-struct Packer {
-    var plan: Plan
-    var info: URL
-    var binDir: URL
+public struct Packer: Sendable {
+    public var plan: Plan
+    public var info: URL
+    public var binDir: URL
 
-    func pack() async throws -> URL {
+    public init(plan: Plan, info: URL, binDir: URL) {
+        self.plan = plan
+        self.info = info
+        self.binDir = binDir
+    }
+
+    public func pack() async throws -> URL {
         let output = try TemporaryDirectory(name: "\(plan.product).app")
 
         let outputURL = output.url
