@@ -57,10 +57,15 @@ public struct PackCommand: AsyncParsableCommand {
             ]
         )
 
-        let schema = if FileManager.default.fileExists(atPath: configPath.path) {
-            try await PackSchema(url: configPath)
+        let schema: PackSchema
+        if FileManager.default.fileExists(atPath: configPath.path) {
+            schema = try await PackSchema(url: configPath)
         } else {
-            PackSchema()
+            schema = .default
+            print("""
+            warning: Could not locate configuration file '\(configPath.path)'. Using default \
+            configuration with 'com.example' organization ID.
+            """)
         }
 
         let infoPlist = try? await Data(reading: info)

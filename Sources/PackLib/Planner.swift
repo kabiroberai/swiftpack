@@ -74,14 +74,14 @@ public struct Planner: Sendable {
 
         let executable = try selectProduct(
             from: executables,
-            matching: schema.binaryProduct,
+            matching: schema.base.binaryProduct,
             debugName: "executable",
             keyPath: "binaryProduct"
         )
 
         let library = try? selectProduct(
             from: staticLibraries,
-            matching: schema.libraryProduct,
+            matching: schema.base.libraryProduct,
             debugName: "static library",
             keyPath: "libraryProduct"
         )
@@ -143,7 +143,7 @@ public struct Planner: Sendable {
                 "CFBundleVersion": "1",
                 "CFBundleShortVersionString": "1.0.0",
                 "MinimumOSVersion": deploymentTarget,
-                "CFBundleIdentifier": schema.bundleID ?? "com.example.\(executable.name)",
+                "CFBundleIdentifier": schema.idSpecifier.formBundleID(product: executable.name),
                 "CFBundleName": "\(executable.name)",
                 "CFBundleExecutable": "\(executable.name)",
             ]
