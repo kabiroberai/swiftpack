@@ -5,11 +5,6 @@ struct Packer {
     var info: URL
     var binDir: URL
 
-    var identity: SigningIdentity
-    var profile: Data?
-    var entitlements: Data?
-    var signer: any Signer = .default
-
     func pack() async throws -> URL {
         let output = try TemporaryDirectory(name: "\(plan.product).app")
 
@@ -21,10 +16,6 @@ struct Packer {
             try FileManager.default.copyItem(at: srcURL, to: dstURL)
 
             try Task.checkCancellation()
-
-            if sign {
-                try await signer.codesign(url: dstURL, identity: identity, entitlements: nil)
-            }
         }
 
         try await withThrowingTaskGroup(of: Void.self) { group in
@@ -52,9 +43,6 @@ struct Packer {
                 try await packFile(srcName: plan.product)
             }
             group.addTask {
-                try profile?.write(to: outputURL.appendingPathComponent("embedded.mobileprovision"))
-            }
-            group.addTask {
                 try await packFile(srcName: info.path, dstName: "Info.plist")
             }
             while !group.isEmpty {
@@ -68,7 +56,6 @@ struct Packer {
                 }
             }
         }
-        try await signer.codesign(url: output.url, identity: identity, entitlements: entitlements)
 
         let dest = URL(fileURLWithPath: output.url.lastPathComponent)
         try? FileManager.default.removeItem(at: dest)

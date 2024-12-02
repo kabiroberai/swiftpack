@@ -64,11 +64,13 @@ struct Planner {
         }
 
         var resources: [Resource] = []
+        var visited: Set<String> = []
         var targets = executable.targets.map { (rootPackage, $0) }
         while let (targetPackage, targetName) = targets.popLast() {
             guard let target = targetPackage.targets?.first(where: { $0.name == targetName }) else {
                 throw StringError("Could not find target '\(targetName)' in package '\(targetPackage.name)'")
             }
+            guard visited.insert(targetName).inserted else { continue }
             if target.moduleType == "BinaryTarget" {
                 resources.append(.binaryTarget(name: targetName))
             }
