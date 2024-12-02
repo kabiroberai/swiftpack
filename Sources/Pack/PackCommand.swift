@@ -77,7 +77,7 @@ struct PackCommand: AsyncParsableCommand {
             packagePath: packagePath,
             options: [
                 "--configuration", configuration.rawValue,
-                "--experimental-swift-sdk", triple
+                "--swift-sdk", triple
             ]
         )
 
