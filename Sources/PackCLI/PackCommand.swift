@@ -82,6 +82,7 @@ public struct PackCommand: AsyncParsableCommand {
             arguments: [
                 "--product", plan.binaryProduct,
                 "-Xlinker", "-rpath", "-Xlinker", "@executable_path/Frameworks",
+                "-Xswiftc", "-parse-as-library", // don't generate _main for exec target
             ]
         )
         try builder.run()
