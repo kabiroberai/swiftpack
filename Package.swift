@@ -18,6 +18,12 @@ let package = Package(
         .executableTarget(
             name: "Pack",
             dependencies: [
+                "PackCLI",
+            ]
+        ),
+        .target(
+            name: "PackCLI",
+            dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 "PackLib",
             ]

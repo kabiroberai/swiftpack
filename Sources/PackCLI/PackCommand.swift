@@ -2,8 +2,8 @@ import Foundation
 import ArgumentParser
 import PackLib
 
-struct PackCommand: AsyncParsableCommand {
-    static let configuration = CommandConfiguration(commandName: "swiftpack")
+public struct PackCommand: AsyncParsableCommand {
+    public static let configuration = CommandConfiguration(commandName: "swiftpack")
 
     // MARK: - Building options
 
@@ -37,7 +37,9 @@ struct PackCommand: AsyncParsableCommand {
 
     // MARK: - Implementation
 
-    func run() async throws {
+    public init() {}
+
+    public func run() async throws {
         print("Planning...")
         let swiftPMSettings = SwiftPMSettings(
             packagePath: packagePath,
