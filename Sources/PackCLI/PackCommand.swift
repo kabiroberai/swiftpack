@@ -5,6 +5,14 @@ import PackLib
 public struct PackCommand: AsyncParsableCommand {
     public static let configuration = CommandConfiguration(commandName: "swiftpack")
 
+    // MARK: - General options
+
+    @Option(
+        help: "Path to the configuration file",
+        completion: .file(extensions: ["yml"]),
+        transform: URL.init(fileURLWithPath:)
+    ) var configPath = URL(fileURLWithPath: "swiftpack.yml")
+
     // MARK: - Building options
 
     enum BuildConfiguration: String, CaseIterable, ExpressibleByArgument {
@@ -33,7 +41,7 @@ public struct PackCommand: AsyncParsableCommand {
         completion: .file(extensions: ["plist"]),
         transform: URL.init(fileURLWithPath:)
     )
-    var info: URL = URL(fileURLWithPath: "Info.plist")
+    var info = URL(fileURLWithPath: "Info.plist")
 
     // MARK: - Implementation
 
@@ -49,13 +57,25 @@ public struct PackCommand: AsyncParsableCommand {
             ]
         )
 
-        let planner = Planner(swiftPMSettings: swiftPMSettings)
+        let schema = if FileManager.default.fileExists(atPath: configPath.path) {
+            try await PackSchema(url: configPath)
+        } else {
+            PackSchema()
+        }
+
+        let infoPlist = try? await Data(reading: info)
+
+        let planner = Planner(
+            swiftPMSettings: swiftPMSettings,
+            infoPlist: infoPlist,
+            schema: schema
+        )
         let plan = try await planner.createPlan()
 
         let builder = swiftPMSettings.invocation(
             forTool: "build",
             arguments: [
-                "--product", plan.product,
+                "--product", plan.binaryProduct,
                 "-Xlinker", "-rpath", "-Xlinker", "@executable_path/Frameworks",
             ]
         )
@@ -66,7 +86,6 @@ public struct PackCommand: AsyncParsableCommand {
 
         let packer = Packer(
             plan: plan,
-            info: info,
             binDir: binDir
         )
         let output = try await packer.pack()

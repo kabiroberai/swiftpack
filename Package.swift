@@ -13,6 +13,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
+        .package(url: "https://github.com/jpsim/Yams", from: "5.1.3"),
     ],
     targets: [
         .executableTarget(
@@ -29,7 +30,10 @@ let package = Package(
             ]
         ),
         .target(
-            name: "PackLib"
+            name: "PackLib",
+            dependencies: [
+                .product(name: "Yams", package: "Yams"),
+            ]
         ),
     ]
 )

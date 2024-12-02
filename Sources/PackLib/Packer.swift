@@ -2,17 +2,15 @@ import Foundation
 
 public struct Packer: Sendable {
     public var plan: Plan
-    public var info: URL
     public var binDir: URL
 
-    public init(plan: Plan, info: URL, binDir: URL) {
+    public init(plan: Plan, binDir: URL) {
         self.plan = plan
-        self.info = info
         self.binDir = binDir
     }
 
     public func pack() async throws -> URL {
-        let output = try TemporaryDirectory(name: "\(plan.product).app")
+        let output = try TemporaryDirectory(name: "\(plan.binaryProduct).app")
 
         let outputURL = output.url
         @Sendable func packFile(srcName: String, dstName: String? = nil, sign: Bool = false) async throws {
@@ -46,10 +44,11 @@ public struct Packer: Sendable {
                 }
             }
             group.addTask {
-                try await packFile(srcName: plan.product)
+                try await packFile(srcName: plan.binaryProduct)
             }
             group.addTask {
-                try await packFile(srcName: info.path, dstName: "Info.plist")
+                let infoPath = outputURL.appendingPathComponent("Info.plist")
+                try plan.infoPlist.write(to: infoPath)
             }
             while !group.isEmpty {
                 do {
