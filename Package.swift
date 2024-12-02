@@ -1,4 +1,4 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.0
 
 import PackageDescription
 
@@ -7,12 +7,12 @@ let package = Package(
     platforms: [.macOS(.v12), .iOS(.v15)],
     products: [
         .executable(
-            name: "swiftpack",
+            name: "pack",
             targets: ["Pack"]
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.2.3"),
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
     ],
     targets: [
         .executableTarget(
