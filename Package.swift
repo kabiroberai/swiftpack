@@ -35,7 +35,7 @@ let package = Package(
             name: "XcodePacker",
             dependencies: [
                 "PackLib",
-                .product(name: "XcodeGenKit", package: "XcodeGen"),
+                .product(name: "XcodeGenKit", package: "XcodeGen", condition: .when(platforms: [.macOS])),
             ]
         ),
         .target(
