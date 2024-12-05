@@ -2,15 +2,64 @@ import Foundation
 
 public struct Packer: Sendable {
     public var plan: Plan
+    public var settings: SwiftPMSettings
     public var binDir: URL
 
-    public init(plan: Plan, binDir: URL) {
+    public init(plan: Plan, settings: SwiftPMSettings, binDir: URL) {
         self.plan = plan
+        self.settings = settings
         self.binDir = binDir
     }
 
+    private func build() async throws {
+        let swiftpackDir = URL(fileURLWithPath: "swiftpack")
+        let packageDir = swiftpackDir.appendingPathComponent("package")
+        try? FileManager.default.removeItem(at: packageDir)
+        try FileManager.default.createDirectory(at: packageDir, withIntermediateDirectories: true)
+
+        let packageSwift = packageDir.appendingPathComponent("Package.swift")
+        let contents = """
+        // swift-tools-version: 6.0
+        import PackageDescription
+        let package = Package(
+            name: "\(plan.product)-Builder",
+            platforms: [
+                .iOS("\(plan.deploymentTarget)"),
+            ],
+            dependencies: [
+                .package(name: "RootPackage", path: "../.."),
+            ],
+            targets: [
+                .executableTarget(
+                    name: "\(plan.product)-App",
+                    dependencies: [
+                        .product(name: "\(plan.product)", package: "RootPackage"),
+                    ],
+                    path: "."
+                ),
+            ]
+        )
+        """
+        try Data(contents.utf8).write(to: packageSwift)
+        try Data().write(to: packageDir.appendingPathComponent("stub.c"))
+
+        let builder = settings.invocation(
+            forTool: "build",
+            arguments: [
+                "--package-path", packageDir.path,
+                "--scratch-path", ".build",
+                "--disable-automatic-resolution",
+                "-Xlinker", "-rpath", "-Xlinker", "@executable_path/Frameworks",
+            ]
+        )
+        try builder.run()
+        await builder.waitForExit()
+    }
+
     public func pack() async throws -> URL {
-        let output = try TemporaryDirectory(name: "\(plan.binaryProduct).app")
+        try await build()
+
+        let output = try TemporaryDirectory(name: "\(plan.product).app")
 
         let outputURL = output.url
         @Sendable func packFile(srcName: String, dstName: String? = nil, sign: Bool = false) async throws {
@@ -44,7 +93,7 @@ public struct Packer: Sendable {
                 }
             }
             group.addTask {
-                try await packFile(srcName: plan.binaryProduct)
+                try await packFile(srcName: "\(plan.product)-App", dstName: plan.product)
             }
             group.addTask {
                 let infoPath = outputURL.appendingPathComponent("Info.plist")

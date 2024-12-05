@@ -8,10 +8,12 @@ public struct SwiftPMSettings: Sendable {
     private static let envURL = URL(fileURLWithPath: "/usr/bin/env")
 
     public var packagePath: String = "."
+    public var configuration: String
     public var options: [String] = []
 
-    public init(packagePath: String, options: [String]) {
+    public init(packagePath: String, configuration: String, options: [String]) {
         self.packagePath = packagePath
+        self.configuration = configuration
         self.options = options
     }
 
@@ -27,7 +29,10 @@ public struct SwiftPMSettings: Sendable {
         } else {
             ["swift", tool]
         }
-        process.arguments = base + ["--package-path", packagePathOverride ?? packagePath] + options + arguments
+        process.arguments = base + [
+            "--package-path", packagePathOverride ?? packagePath,
+            "--configuration", configuration,
+        ] + options + arguments
         return process
     }
 }

@@ -14,13 +14,20 @@ public struct XcodePacker {
     }
 
     public func createProject() async throws -> URL {
+        let targetName = "\(plan.product)-App"
+
         let projectDir: Path = "swiftpack"
         try? projectDir.delete()
         try projectDir.mkpath()
 
         let infoPath = projectDir + "Info.plist"
+
         var plist = plan.infoPlist
         let families = (plist.removeValue(forKey: "UIDeviceFamily") as? [Int]) ?? [1, 2]
+        plist["CFBundleExecutable"] = targetName
+        plist["CFBundleName"] = targetName
+        plist["CFBundleDisplayName"] = plan.product
+
         let encodedPlist = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
         try infoPath.write(encodedPlist)
 
@@ -29,17 +36,15 @@ public struct XcodePacker {
 
         let fromProjectToRoot = try Path(".").relativePath(from: projectDir)
 
-        guard let libraryProduct = plan.libraryProduct else {
-            throw StringError("Could not find libraryProduct")
-        }
         guard let deploymentTarget = Version(tolerant: plan.deploymentTarget) else {
             throw StringError("Could not parse deployment target '\(plan.deploymentTarget)'")
         }
+
         let project = Project(
-            name: plan.binaryProduct,
+            name: plan.product,
             targets: [
                 Target(
-                    name: plan.binaryProduct,
+                    name: targetName,
                     type: .application,
                     platform: .iOS,
                     deploymentTarget: deploymentTarget,
@@ -52,8 +57,8 @@ public struct XcodePacker {
                     ],
                     dependencies: [
                         Dependency(
-                            type: .package(products: [libraryProduct]),
-                            reference: "LocalPackage"
+                            type: .package(products: [plan.product]),
+                            reference: "RootPackage"
                         ),
                     ],
                     info: Plist(
@@ -63,18 +68,17 @@ public struct XcodePacker {
                 )
             ],
             packages: [
-                "LocalPackage": .local(
+                "RootPackage": .local(
                     path: fromProjectToRoot.string,
                     group: nil
                 ),
             ],
             options: SpecOptions(
-                createIntermediateGroups: false,
                 localPackagesGroup: ""
             )
         )
         let generator = ProjectGenerator(project: project)
-        let output = projectDir + "\(plan.binaryProduct).xcodeproj"
+        let output = projectDir + "\(plan.product).xcodeproj"
         do {
             let current = Path.current
             Path.current = projectDir

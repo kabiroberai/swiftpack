@@ -66,26 +66,16 @@ public struct Planner: Sendable {
         let rootPackage = packages[dependencyRoot.identity]!
         let deploymentTarget = rootPackage.platforms?.first { $0.name == "ios" }?.version ?? "13.0"
 
-        let executables = rootPackage.products?.filter { $0.type == .executable } ?? []
         let staticLibraries = rootPackage.products?.filter { $0.type == .staticLibrary } ?? []
 
-        let executable = try selectProduct(
-            from: executables,
-            matching: schema.base.binaryProduct,
-            debugName: "executable",
-            keyPath: "binaryProduct"
-        )
-
-        let library = try? selectProduct(
+        let library = try selectLibrary(
             from: staticLibraries,
-            matching: schema.base.libraryProduct,
-            debugName: "static library",
-            keyPath: "libraryProduct"
+            matching: schema.base.product
         )
 
         var resources: [Resource] = []
         var visited: Set<String> = []
-        var targets = executable.targets.map { (rootPackage, $0) }
+        var targets = library.targets.map { (rootPackage, $0) }
         while let (targetPackage, targetName) = targets.popLast() {
             guard let target = targetPackage.targets?.first(where: { $0.name == targetName }) else {
                 throw StringError("Could not find target '\(targetName)' in package '\(targetPackage.name)'")
@@ -117,7 +107,7 @@ public struct Planner: Sendable {
             }
         }
 
-        let bundleID = schema.idSpecifier.formBundleID(product: executable.name)
+        let bundleID = schema.idSpecifier.formBundleID(product: library.name)
 
         let infoPlist: [String: Sendable]
         if let plist = self.schema.base.infoPath {
@@ -149,14 +139,13 @@ public struct Planner: Sendable {
                 "CFBundleShortVersionString": "1.0.0",
                 "MinimumOSVersion": deploymentTarget,
                 "CFBundleIdentifier": bundleID,
-                "CFBundleName": "\(executable.name)",
-                "CFBundleExecutable": "\(executable.name)",
+                "CFBundleName": "\(library.name)",
+                "CFBundleExecutable": "\(library.name)",
             ]
         }
 
         return Plan(
-            binaryProduct: executable.name,
-            libraryProduct: library?.name,
+            product: library.name,
             deploymentTarget: deploymentTarget,
             bundleID: bundleID,
             infoPlist: infoPlist,
@@ -184,34 +173,32 @@ public struct Planner: Sendable {
         return try await task
     }
 
-    private func selectProduct(
+    private func selectLibrary(
         from products: [PackageDump.Product],
-        matching name: String?,
-        debugName: String,
-        keyPath: String
+        matching name: String?
     ) throws -> PackageDump.Product {
         switch products.count {
         case 0:
-            throw StringError("No \(debugName) products were found in the package")
+            throw StringError("No .static library products were found in the package")
         case 1:
             let product = products[0]
             if let name, product.name != name {
                 throw StringError("""
-                Product name ('\(product.name)') does not match the \(keyPath) value in the schema ('\(name)')
+                Product name ('\(product.name)') does not match the 'product' value in the schema ('\(name)')
                 """)
             }
             return product
         default:
             guard let name else {
                 throw StringError("""
-                Multiple \(debugName) products were found (\(products.map(\.name))). Please either:
-                1) Expose exactly one \(debugName) product, or
-                2) Specify the product you want via the '\(keyPath)' key in swiftpack.yml.
+                Multiple .static library products were found (\(products.map(\.name))). Please either:
+                1) Expose exactly one .static library product, or
+                2) Specify the product you want via the 'product' key in swiftpack.yml.
                 """)
             }
             guard let product = products.first(where: { $0.name == name }) else {
                 throw StringError("""
-                Schema declares a '\(keyPath)' name of '\(name)' but no matching product was found.
+                Schema declares a 'product' name of '\(name)' but no matching product was found.
                 Found: \(products.map(\.name)).
                 """)
             }
@@ -221,8 +208,7 @@ public struct Planner: Sendable {
 }
 
 public struct Plan: Sendable {
-    public var binaryProduct: String
-    public var libraryProduct: String?
+    public var product: String
     public var deploymentTarget: String
     public var bundleID: String
     public var infoPlist: [String: any Sendable]

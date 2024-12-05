@@ -30,18 +30,9 @@ public struct PackCommand: AsyncParsableCommand {
     }
 
     @Option(
-        help: "The Swift Package path to operate on",
-        completion: .directory
-    ) var packagePath = "."
-
-    @Option(
         name: .shortAndLong,
         help: "Build with configuration"
     ) var configuration: BuildConfiguration = .debug
-
-    @Option(
-        help: "The target triple to build for"
-    ) var triple = "arm64-apple-ios"
 
     // MARK: - Implementation
 
@@ -49,12 +40,35 @@ public struct PackCommand: AsyncParsableCommand {
 
     public func run() async throws {
         print("Planning...")
+
+        let triple = "arm64-apple-ios"
+
+        var options: [String] = []
+        #if os(macOS)
+        let xcrun = Process()
+        let pipe = Pipe()
+        xcrun.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
+        xcrun.arguments = ["-show-sdk-path", "--sdk", "iphoneos"]
+        xcrun.standardOutput = pipe
+        try xcrun.run()
+        await xcrun.waitForExit()
+        let sdkPath = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        options += [
+            "--triple", triple,
+            "--sdk", sdkPath,
+        ]
+        #else
+        options += [
+            "--swift-sdk", triple
+        ]
+        #endif
+
         let swiftPMSettings = SwiftPMSettings(
-            packagePath: packagePath,
-            options: [
-                "--configuration", configuration.rawValue,
-                "--swift-sdk", triple
-            ]
+            packagePath: ".",
+            configuration: configuration.rawValue,
+            options: options
         )
 
         let schema: PackSchema
@@ -83,20 +97,10 @@ public struct PackCommand: AsyncParsableCommand {
         }
         #endif
 
-        let builder = swiftPMSettings.invocation(
-            forTool: "build",
-            arguments: [
-                "--product", plan.binaryProduct,
-                "-Xlinker", "-rpath", "-Xlinker", "@executable_path/Frameworks",
-            ]
-        )
-        try builder.run()
-        await builder.waitForExit()
-        let binDir = URL(fileURLWithPath: packagePath, isDirectory: true)
-            .appendingPathComponent(".build/\(triple)/\(configuration.rawValue)", isDirectory: true)
-
+        let binDir = URL(fileURLWithPath: ".build/\(triple)/\(configuration.rawValue)", isDirectory: true)
         let packer = Packer(
             plan: plan,
+            settings: swiftPMSettings,
             binDir: binDir
         )
         let output = try await packer.pack()

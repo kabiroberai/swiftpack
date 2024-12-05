@@ -11,8 +11,7 @@ public struct PackSchemaBase: Codable, Sendable {
     public var orgID: String?
     public var bundleID: String?
 
-    public var libraryProduct: String?
-    public var binaryProduct: String?
+    public var product: String?
 
     public var infoPath: String?
 }
