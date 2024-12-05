@@ -38,7 +38,7 @@ public struct Packer: Sendable {
                     path: "."
                 ),
             ]
-        )
+        )\n
         """
         try Data(contents.utf8).write(to: packageSwift)
         try Data().write(to: packageDir.appendingPathComponent("stub.c"))
