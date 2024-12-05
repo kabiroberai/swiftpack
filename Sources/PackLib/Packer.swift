@@ -46,6 +46,12 @@ public struct Packer: Sendable {
             arguments: [
                 "--package-path", packageDir.path,
                 "--scratch-path", ".build",
+                // resolving can cause SwiftPM to overwrite the root package deps
+                // with just the deps needed for the builder package (which is to
+                // say, any "dev dependencies" of the root package may be removed.)
+                // fortunately we've already resolved the root package by this point
+                // in order to dump the plan, so we can skip resolution here to skirt
+                // the issue.
                 "--disable-automatic-resolution",
                 "-Xlinker", "-rpath", "-Xlinker", "@executable_path/Frameworks",
             ]

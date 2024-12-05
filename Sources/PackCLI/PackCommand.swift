@@ -49,7 +49,6 @@ public struct PackCommand: AsyncParsableCommand {
 
         let buildSettings = try await BuildSettings(
             configuration: configuration,
-            packagePath: ".",
             options: []
         )
 
