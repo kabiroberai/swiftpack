@@ -66,10 +66,10 @@ public struct Planner: Sendable {
         let rootPackage = packages[dependencyRoot.identity]!
         let deploymentTarget = rootPackage.platforms?.first { $0.name == "ios" }?.version ?? "13.0"
 
-        let staticLibraries = rootPackage.products?.filter { $0.type == .staticLibrary } ?? []
+        let libraries = rootPackage.products?.filter { $0.type == .autoLibrary } ?? []
 
         let library = try selectLibrary(
-            from: staticLibraries,
+            from: libraries,
             matching: schema.base.product
         )
 
@@ -179,7 +179,7 @@ public struct Planner: Sendable {
     ) throws -> PackageDump.Product {
         switch products.count {
         case 0:
-            throw StringError("No .static library products were found in the package")
+            throw StringError("No library products were found in the package")
         case 1:
             let product = products[0]
             if let name, product.name != name {
@@ -191,8 +191,8 @@ public struct Planner: Sendable {
         default:
             guard let name else {
                 throw StringError("""
-                Multiple .static library products were found (\(products.map(\.name))). Please either:
-                1) Expose exactly one .static library product, or
+                Multiple library products were found (\(products.map(\.name))). Please either:
+                1) Expose exactly one library product, or
                 2) Specify the product you want via the 'product' key in swiftpack.yml.
                 """)
             }
@@ -233,6 +233,7 @@ private struct PackageDump: Decodable {
         case executable
         case dynamicLibrary
         case staticLibrary
+        case autoLibrary
         case other
 
         private enum CodingKeys: String, CodingKey {
@@ -245,10 +246,17 @@ private struct PackageDump: Decodable {
             if container.contains(.executable) {
                 self = .executable
             } else if let library = try container.decodeIfPresent([String].self, forKey: .library) {
-                if library == ["dynamic"] {
-                    self = .dynamicLibrary
-                } else if library == ["static"] {
-                    self = .staticLibrary
+                if library.count == 1 {
+                    switch library[0] {
+                    case "dynamic":
+                        self = .dynamicLibrary
+                    case "static":
+                        self = .staticLibrary
+                    case "automatic":
+                        self = .autoLibrary
+                    default:
+                        self = .other
+                    }
                 } else {
                     self = .other
                 }
