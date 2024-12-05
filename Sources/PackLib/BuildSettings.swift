@@ -61,7 +61,7 @@ public struct BuildSettings: Sendable {
         process.arguments = base + [
             "--package-path", packagePathOverride ?? packagePath,
             "--configuration", configuration.rawValue,
-        ] + options + arguments
+        ] + sdkOptions + options + arguments
         return process
     }
 }
