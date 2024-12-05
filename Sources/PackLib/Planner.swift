@@ -3,15 +3,12 @@ import Foundation
 public struct Planner: Sendable {
     public var swiftPMSettings: SwiftPMSettings
     public var schema: PackSchema
-    public var infoPlist: Data?
 
     public init(
         swiftPMSettings: SwiftPMSettings,
-        infoPlist: Data?,
         schema: PackSchema
     ) {
         self.swiftPMSettings = swiftPMSettings
-        self.infoPlist = infoPlist
         self.schema = schema
     }
 
@@ -120,11 +117,19 @@ public struct Planner: Sendable {
             }
         }
 
-        let infoPlist: Data
-        if let plist = self.infoPlist {
-            infoPlist = plist
+        let bundleID = schema.idSpecifier.formBundleID(product: executable.name)
+
+        let infoPlist: [String: Sendable]
+        if let plist = self.schema.base.infoPath {
+            let data = try await Data(reading: URL(fileURLWithPath: plist))
+            let info = try PropertyListSerialization.propertyList(from: data, format: nil)
+            if let info = info as? [String: Sendable] {
+                infoPlist = info
+            } else {
+                throw StringError("Info.plist has invalid format: expected a dictionary.")
+            }
         } else {
-            let plist: [String: Sendable] = [
+            infoPlist = [
                 "CFBundleInfoDictionaryVersion": "6.0",
                 "UIRequiredDeviceCapabilities": ["arm64"],
                 "LSRequiresIPhoneOS": true,
@@ -143,17 +148,17 @@ public struct Planner: Sendable {
                 "CFBundleVersion": "1",
                 "CFBundleShortVersionString": "1.0.0",
                 "MinimumOSVersion": deploymentTarget,
-                "CFBundleIdentifier": schema.idSpecifier.formBundleID(product: executable.name),
+                "CFBundleIdentifier": bundleID,
                 "CFBundleName": "\(executable.name)",
                 "CFBundleExecutable": "\(executable.name)",
             ]
-            infoPlist = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
         }
 
         return Plan(
             binaryProduct: executable.name,
             libraryProduct: library?.name,
             deploymentTarget: deploymentTarget,
+            bundleID: bundleID,
             infoPlist: infoPlist,
             resources: resources
         )
@@ -215,11 +220,12 @@ public struct Planner: Sendable {
     }
 }
 
-public struct Plan: Codable, Sendable {
+public struct Plan: Sendable {
     public var binaryProduct: String
     public var libraryProduct: String?
     public var deploymentTarget: String
-    public var infoPlist: Data
+    public var bundleID: String
+    public var infoPlist: [String: any Sendable]
     public var resources: [Resource]
 }
 

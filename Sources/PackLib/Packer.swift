@@ -48,7 +48,12 @@ public struct Packer: Sendable {
             }
             group.addTask {
                 let infoPath = outputURL.appendingPathComponent("Info.plist")
-                try plan.infoPlist.write(to: infoPath)
+                let encodedPlist = try PropertyListSerialization.data(
+                    fromPropertyList: plan.infoPlist,
+                    format: .xml,
+                    options: 0
+                )
+                try encodedPlist.write(to: infoPath)
             }
             while !group.isEmpty {
                 do {
@@ -62,7 +67,8 @@ public struct Packer: Sendable {
             }
         }
 
-        let dest = URL(fileURLWithPath: output.url.lastPathComponent)
+        let dest = URL(fileURLWithPath: "swiftpack")
+            .appendingPathComponent(output.url.lastPathComponent)
         try? FileManager.default.removeItem(at: dest)
         try output.persist(at: dest)
         return dest

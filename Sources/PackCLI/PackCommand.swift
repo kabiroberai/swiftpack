@@ -1,6 +1,7 @@
 import Foundation
 import ArgumentParser
 import PackLib
+import XcodePacker
 
 public struct PackCommand: AsyncParsableCommand {
     public static let configuration = CommandConfiguration(commandName: "swiftpack")
@@ -12,6 +13,13 @@ public struct PackCommand: AsyncParsableCommand {
         completion: .file(extensions: ["yml"]),
         transform: URL.init(fileURLWithPath:)
     ) var configPath = URL(fileURLWithPath: "swiftpack.yml")
+
+    @Option(
+        help: ArgumentHelp(
+            "Disable Xcode packer; always build with SwiftPM.",
+            discussion: "This option does nothing on Linux."
+        )
+    ) var disableXcode: Bool = false
 
     // MARK: - Building options
 
@@ -33,15 +41,6 @@ public struct PackCommand: AsyncParsableCommand {
     @Option(
         help: "The target triple to build for"
     ) var triple = "arm64-apple-ios"
-
-    // MARK: - Packaging options
-
-    @Option(
-        help: "Path to the Info plist",
-        completion: .file(extensions: ["plist"]),
-        transform: URL.init(fileURLWithPath:)
-    )
-    var info = URL(fileURLWithPath: "Info.plist")
 
     // MARK: - Implementation
 
@@ -68,21 +67,26 @@ public struct PackCommand: AsyncParsableCommand {
             """)
         }
 
-        let infoPlist = try? await Data(reading: info)
-
         let planner = Planner(
             swiftPMSettings: swiftPMSettings,
-            infoPlist: infoPlist,
             schema: schema
         )
         let plan = try await planner.createPlan()
+
+        #if os(macOS)
+        if !disableXcode {
+            let packer = XcodePacker(plan: plan)
+            let output = try await packer.createProject()
+            print("Output: \(output.path)")
+            return
+        }
+        #endif
 
         let builder = swiftPMSettings.invocation(
             forTool: "build",
             arguments: [
                 "--product", plan.binaryProduct,
                 "-Xlinker", "-rpath", "-Xlinker", "@executable_path/Frameworks",
-                "-Xswiftc", "-parse-as-library", // don't generate _main for exec target
             ]
         )
         try builder.run()

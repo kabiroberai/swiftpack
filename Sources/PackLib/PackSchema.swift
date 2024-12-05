@@ -13,6 +13,8 @@ public struct PackSchemaBase: Codable, Sendable {
 
     public var libraryProduct: String?
     public var binaryProduct: String?
+
+    public var infoPath: String?
 }
 
 public struct PackSchema: Sendable {
@@ -59,27 +61,3 @@ public struct PackSchema: Sendable {
         try self.init(validating: base)
     }
 }
-
-/*
- name: MyApp
- options:
-   localPackagesGroup: ""
- packages:
-   LocalPackage:
-     path: ..
- targets:
-   MyApp:
-     type: application
-     platform: iOS
-     deploymentTarget: "18.0"
-     sources:
-       - Empty
-     dependencies:
-       - package: LocalPackage
-         product: MyAppLib
-     settings:
-       PRODUCT_BUNDLE_IDENTIFIER: com.kabiroberai.MyApp
-       GENERATE_INFOPLIST_FILE: YES
-       CURRENT_PROJECT_VERSION: 1
-       MARKETING_VERSION: 1
- */

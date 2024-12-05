@@ -1,6 +1,6 @@
-struct StringError: Error, CustomStringConvertible {
-    var description: String
-    init(_ description: String) {
+package struct StringError: Error, CustomStringConvertible {
+    package var description: String
+    package init(_ description: String) {
         self.description = description
     }
 }
