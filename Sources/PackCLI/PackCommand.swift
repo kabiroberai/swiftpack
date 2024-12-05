@@ -14,12 +14,13 @@ public struct PackCommand: AsyncParsableCommand {
         transform: URL.init(fileURLWithPath:)
     ) var configPath = URL(fileURLWithPath: "swiftpack.yml")
 
-    @Option(
+    @Flag(
+        inversion: .prefixedEnableDisable,
         help: ArgumentHelp(
-            "Disable Xcode packer; always build with SwiftPM.",
+            "Allow generating Xcode project instead of building with SwiftPM.",
             discussion: "This option does nothing on Linux."
         )
-    ) var disableXcode: Bool = false
+    ) var xcode: Bool = true
 
     // MARK: - Building options
 
@@ -74,7 +75,7 @@ public struct PackCommand: AsyncParsableCommand {
         let plan = try await planner.createPlan()
 
         #if os(macOS)
-        if !disableXcode {
+        if xcode {
             let packer = XcodePacker(plan: plan)
             let output = try await packer.createProject()
             print("Output: \(output.path)")
