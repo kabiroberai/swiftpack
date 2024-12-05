@@ -1,14 +1,12 @@
 import Foundation
 
 public struct Packer: Sendable {
-    public var plan: Plan
-    public var settings: SwiftPMSettings
-    public var binDir: URL
+    public let buildSettings: BuildSettings
+    public let plan: Plan
 
-    public init(plan: Plan, settings: SwiftPMSettings, binDir: URL) {
+    public init(buildSettings: BuildSettings, plan: Plan) {
         self.plan = plan
-        self.settings = settings
-        self.binDir = binDir
+        self.buildSettings = buildSettings
     }
 
     private func build() async throws {
@@ -43,7 +41,7 @@ public struct Packer: Sendable {
         try Data(contents.utf8).write(to: packageSwift)
         try Data().write(to: packageDir.appendingPathComponent("stub.c"))
 
-        let builder = settings.invocation(
+        let builder = buildSettings.swiftPMInvocation(
             forTool: "build",
             arguments: [
                 "--package-path", packageDir.path,
@@ -60,6 +58,11 @@ public struct Packer: Sendable {
         try await build()
 
         let output = try TemporaryDirectory(name: "\(plan.product).app")
+
+        let binDir = URL(
+            fileURLWithPath: ".build/\(buildSettings.triple)/\(buildSettings.configuration.rawValue)",
+            isDirectory: true
+        )
 
         let outputURL = output.url
         @Sendable func packFile(srcName: String, dstName: String? = nil, sign: Bool = false) async throws {

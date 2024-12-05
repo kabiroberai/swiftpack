@@ -24,11 +24,6 @@ public struct PackCommand: AsyncParsableCommand {
 
     // MARK: - Building options
 
-    enum BuildConfiguration: String, CaseIterable, ExpressibleByArgument {
-        case debug
-        case release
-    }
-
     @Option(
         name: .shortAndLong,
         help: "Build with configuration"
@@ -41,36 +36,6 @@ public struct PackCommand: AsyncParsableCommand {
     public func run() async throws {
         print("Planning...")
 
-        let triple = "arm64-apple-ios"
-
-        var options: [String] = []
-        #if os(macOS)
-        let xcrun = Process()
-        let pipe = Pipe()
-        xcrun.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
-        xcrun.arguments = ["-show-sdk-path", "--sdk", "iphoneos"]
-        xcrun.standardOutput = pipe
-        try xcrun.run()
-        await xcrun.waitForExit()
-        let sdkPath = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        options += [
-            "--triple", triple,
-            "--sdk", sdkPath,
-        ]
-        #else
-        options += [
-            "--swift-sdk", triple
-        ]
-        #endif
-
-        let swiftPMSettings = SwiftPMSettings(
-            packagePath: ".",
-            configuration: configuration.rawValue,
-            options: options
-        )
-
         let schema: PackSchema
         if FileManager.default.fileExists(atPath: configPath.path) {
             schema = try await PackSchema(url: configPath)
@@ -82,8 +47,14 @@ public struct PackCommand: AsyncParsableCommand {
             """)
         }
 
+        let buildSettings = try await BuildSettings(
+            configuration: configuration,
+            packagePath: ".",
+            options: []
+        )
+
         let planner = Planner(
-            swiftPMSettings: swiftPMSettings,
+            buildSettings: buildSettings,
             schema: schema
         )
         let plan = try await planner.createPlan()
@@ -97,14 +68,14 @@ public struct PackCommand: AsyncParsableCommand {
         }
         #endif
 
-        let binDir = URL(fileURLWithPath: ".build/\(triple)/\(configuration.rawValue)", isDirectory: true)
         let packer = Packer(
-            plan: plan,
-            settings: swiftPMSettings,
-            binDir: binDir
+            buildSettings: buildSettings,
+            plan: plan
         )
         let output = try await packer.pack()
 
         print("Output: \(output.path)")
     }
 }
+
+extension BuildConfiguration: ExpressibleByArgument {}

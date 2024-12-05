@@ -1,14 +1,14 @@
 import Foundation
 
 public struct Planner: Sendable {
-    public var swiftPMSettings: SwiftPMSettings
+    public var buildSettings: BuildSettings
     public var schema: PackSchema
 
     public init(
-        swiftPMSettings: SwiftPMSettings,
+        buildSettings: BuildSettings,
         schema: PackSchema
     ) {
-        self.swiftPMSettings = swiftPMSettings
+        self.buildSettings = buildSettings
         self.schema = schema
     }
 
@@ -23,7 +23,7 @@ public struct Planner: Sendable {
 
         let dependencyData = try await _dumpAction(
             arguments: ["show-dependencies", "--format", "json"],
-            path: swiftPMSettings.packagePath
+            path: buildSettings.packagePath
         )
         let dependencyRoot = try Self.decoder.decode(PackageDependency.self, from: dependencyData)
 
@@ -160,7 +160,7 @@ public struct Planner: Sendable {
     }
 
     private func _dumpAction(arguments: [String], path: String) async throws -> Data {
-        let dump = swiftPMSettings.invocation(
+        let dump = buildSettings.swiftPMInvocation(
             forTool: "package",
             arguments: arguments,
             packagePathOverride: path
