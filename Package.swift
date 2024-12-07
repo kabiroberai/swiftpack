@@ -10,6 +10,10 @@ let package = Package(
             name: "pack",
             targets: ["Pack"]
         ),
+        .library(
+            name: "PackLib",
+            targets: ["PackLib"]
+        )
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
