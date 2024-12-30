@@ -2,13 +2,13 @@ import ArgumentParser
 import Foundation
 
 extension ParsableCommand {
-    public static func cancellableMain() async {
+    public static func cancellableMain(_ arguments: [String]? = nil) async {
         let (canStart, cont) = AsyncStream.makeStream(of: Never.self)
         let task = Task {
             for await _ in canStart {}
             guard !Task.isCancelled else { return }
             do {
-                var command = try self.parseAsRoot()
+                var command = try self.parseAsRoot(arguments)
                 if var asyncCommand = command as? AsyncParsableCommand {
                     try await asyncCommand.run()
                 } else {
