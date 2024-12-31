@@ -16,7 +16,7 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/kabiroberai/swiftpack-core", .upToNextMinor(from: "1.0.2")),
+        .package(url: "https://github.com/kabiroberai/swiftpack-core", .upToNextMinor(from: "1.0.3")),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
         .package(url: "https://github.com/jpsim/Yams", from: "5.1.3"),
         .package(url: "https://github.com/yonaskolb/XcodeGen", from: "2.42.0"),
