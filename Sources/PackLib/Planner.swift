@@ -1,4 +1,5 @@
 import Foundation
+import PackCore
 
 public struct Planner: Sendable {
     public var buildSettings: BuildSettings
@@ -167,9 +168,8 @@ public struct Planner: Sendable {
         )
         let pipe = Pipe()
         dump.standardOutput = pipe
-        try dump.run()
         async let task = Data(reading: pipe.fileHandleForReading)
-        await dump.waitForExit()
+        try await dump.runUntilExit()
         return try await task
     }
 

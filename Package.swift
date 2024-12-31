@@ -16,6 +16,7 @@ let package = Package(
         )
     ],
     dependencies: [
+        .package(url: "https://github.com/kabiroberai/swiftpack-core", .upToNextMinor(from: "1.0.1")),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
         .package(url: "https://github.com/jpsim/Yams", from: "5.1.3"),
         .package(url: "https://github.com/yonaskolb/XcodeGen", from: "2.42.0"),
@@ -39,6 +40,7 @@ let package = Package(
             name: "XcodePacker",
             dependencies: [
                 "PackLib",
+                .product(name: "PackCore", package: "swiftpack-core"),
                 .product(name: "XcodeGenKit", package: "XcodeGen", condition: .when(platforms: [.macOS])),
             ]
         ),

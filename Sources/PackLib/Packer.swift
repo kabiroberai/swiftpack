@@ -1,4 +1,5 @@
 import Foundation
+import PackCore
 
 public struct Packer: Sendable {
     public let buildSettings: BuildSettings
@@ -58,8 +59,8 @@ public struct Packer: Sendable {
                 "-Xlinker", "-rpath", "-Xlinker", "@executable_path/Frameworks",
             ]
         )
-        try builder.run()
-        await builder.waitForExit()
+        builder.standardOutput = FileHandle.standardError
+        try await builder.runUntilExit()
     }
 
     public func pack() async throws -> URL {

@@ -1,5 +1,6 @@
 import Foundation
 import ArgumentParser
+import PackCore
 import PackLib
 import XcodePacker
 
@@ -15,12 +16,18 @@ public struct PackCommand: AsyncParsableCommand {
     ) var configPath = URL(fileURLWithPath: "swiftpack.yml")
 
     @Flag(
-        inversion: .prefixedEnableDisable,
         help: ArgumentHelp(
-            "Allow generating Xcode project instead of building with SwiftPM.",
+            "Generate an Xcode project",
             discussion: "This option does nothing on Linux."
         )
-    ) var xcode: Bool = true
+    ) var xcode: Bool = false
+
+    @Flag(
+        help: ArgumentHelp(
+            "Dump output as parsable JSON",
+            discussion: "The output format is described in PackCore."
+        )
+    ) var json = false
 
     // MARK: - Building options
 
@@ -34,14 +41,14 @@ public struct PackCommand: AsyncParsableCommand {
     public init() {}
 
     public func run() async throws {
-        print("Planning...")
+        stderrPrint("Planning...")
 
         let schema: PackSchema
         if FileManager.default.fileExists(atPath: configPath.path) {
             schema = try await PackSchema(url: configPath)
         } else {
             schema = .default
-            print("""
+            stderrPrint("""
             warning: Could not locate configuration file '\(configPath.path)'. Using default \
             configuration with 'com.example' organization ID.
             """)
@@ -62,7 +69,7 @@ public struct PackCommand: AsyncParsableCommand {
         if xcode {
             let packer = XcodePacker(plan: plan)
             let output = try await packer.createProject()
-            print("Output: \(output.path)")
+            stderrPrint("Project: \(output.path)")
             return
         }
         #endif
@@ -72,8 +79,14 @@ public struct PackCommand: AsyncParsableCommand {
             plan: plan
         )
         let output = try await packer.pack()
+        stderrPrint("Output: ", terminator: "")
 
-        print("Output: \(output.path)")
+        if json {
+            let json = try JSONEncoder().encode(PackOutput(path: output.path))
+            print(String(decoding: json, as: UTF8.self))
+        } else {
+            print(output.path)
+        }
     }
 }
 

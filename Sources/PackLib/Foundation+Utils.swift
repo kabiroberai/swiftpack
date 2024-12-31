@@ -1,41 +1,5 @@
 import Foundation
 
-extension Process {
-    /// Suspends until the receiver is finished.
-    ///
-    /// - Parameter onCancel: The action to take if the current
-    /// task is cancelled.
-    public func waitForExit(onCancel: TaskCancelAction = .interrupt) async {
-        await withTaskCancellationHandler {
-            let oldHandler = terminationHandler
-            await withCheckedContinuation { continuation in
-                terminationHandler = {
-                    oldHandler?($0)
-                    continuation.resume()
-                }
-            }
-        } onCancel: {
-            switch onCancel {
-            case .interrupt:
-                interrupt()
-            case .terminate:
-                terminate()
-            case .ignore:
-                break
-            }
-        }
-    }
-
-    public enum TaskCancelAction: Sendable {
-        /// Sends `SIGINT` to the process.
-        case interrupt
-        /// Sends `SIGTERM` to the process.
-        case terminate
-        /// Don't participate in cooperative cancellation.
-        case ignore
-    }
-}
-
 struct TemporaryDirectory: ~Copyable {
     private var shouldDelete = true
 
@@ -85,4 +49,8 @@ extension Data {
         try self.init(contentsOf: file)
         #endif
     }
+}
+
+package func stderrPrint(_ message: String, terminator: String = "\n") {
+    try? FileHandle.standardError.write(contentsOf: Data("\(message)\(terminator)".utf8))
 }

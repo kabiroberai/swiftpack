@@ -1,4 +1,5 @@
 import Foundation
+import PackCore
 
 public struct BuildSettings: Sendable {
     private static let customBinDir =
@@ -31,8 +32,7 @@ public struct BuildSettings: Sendable {
         xcrun.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
         xcrun.arguments = ["-show-sdk-path", "--sdk", "iphoneos"]
         xcrun.standardOutput = pipe
-        try xcrun.run()
-        await xcrun.waitForExit()
+        try await xcrun.runUntilExit()
         let sdkPath = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         self.sdkOptions = [
@@ -56,6 +56,7 @@ public struct BuildSettings: Sendable {
         let base = if let customBinDir = Self.customBinDir {
             [customBinDir.appendingPathComponent("swift-\(tool)").path]
         } else {
+            // TODO: resolve abs path instead to avoid xcrun sdkroot
             ["swift", tool]
         }
         process.arguments = base + [
