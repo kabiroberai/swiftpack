@@ -16,7 +16,7 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/kabiroberai/swiftpack-core", .upToNextMinor(from: "1.0.1")),
+        .package(url: "https://github.com/kabiroberai/swiftpack-core", .upToNextMinor(from: "1.0.2")),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
         .package(url: "https://github.com/jpsim/Yams", from: "5.1.3"),
         .package(url: "https://github.com/yonaskolb/XcodeGen", from: "2.42.0"),
@@ -32,7 +32,6 @@ let package = Package(
             name: "PackCLI",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "PackCore", package: "swiftpack-core"),
                 "PackLib",
                 "XcodePacker",
             ]
@@ -47,6 +46,7 @@ let package = Package(
         .target(
             name: "PackLib",
             dependencies: [
+                .product(name: "PackCore", package: "swiftpack-core"),
                 .product(name: "Yams", package: "Yams"),
             ]
         ),

@@ -161,7 +161,7 @@ public struct Planner: Sendable {
     }
 
     private func _dumpAction(arguments: [String], path: String) async throws -> Data {
-        let dump = buildSettings.swiftPMInvocation(
+        let dump = try await buildSettings.swiftPMInvocation(
             forTool: "package",
             arguments: arguments,
             packagePathOverride: path

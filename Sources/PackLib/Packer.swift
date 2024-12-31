@@ -43,7 +43,7 @@ public struct Packer: Sendable {
         try? FileManager.default.createDirectory(at: sources, withIntermediateDirectories: true)
         try Data().write(to: sources.appendingPathComponent("stub.c"))
 
-        let builder = buildSettings.swiftPMInvocation(
+        let builder = try await buildSettings.swiftPMInvocation(
             forTool: "build",
             arguments: [
                 "--package-path", packageDir.path,
