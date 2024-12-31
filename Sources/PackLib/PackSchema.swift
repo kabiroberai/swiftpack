@@ -2,12 +2,6 @@ import Foundation
 import Yams
 
 public struct PackSchemaBase: Codable, Sendable {
-    public enum Version: Int, Codable, Sendable {
-        case v1 = 1
-    }
-
-    public var version: Version
-
     public var orgID: String?
     public var bundleID: String?
 
@@ -35,10 +29,6 @@ public struct PackSchema: Sendable {
     public init(validating base: PackSchemaBase) throws {
         self.base = base
 
-        if base.version != .v1 {
-            throw StringError("swiftpack.yml: Unsupported schema version: \(base.version.rawValue)")
-        }
-
         switch (base.bundleID, base.orgID) {
         case (let bundleID?, _):
             idSpecifier = .bundleID(bundleID)
@@ -50,7 +40,6 @@ public struct PackSchema: Sendable {
     }
 
     public static let `default` = try! PackSchema(validating: .init(
-        version: .v1,
         orgID: "com.example"
     ))
 
