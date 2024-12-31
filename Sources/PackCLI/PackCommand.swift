@@ -81,7 +81,7 @@ public struct PackCommand: AsyncParsableCommand {
         let output = try await packer.pack()
 
         if json {
-            let json = try JSONEncoder().encode(PackOutput(path: output.path))
+            let json = try PackOutput(path: output.path).encode()
             print(String(decoding: json, as: UTF8.self))
         } else {
             stderrPrint("Output: ", terminator: "")
