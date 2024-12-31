@@ -32,6 +32,7 @@ let package = Package(
             name: "PackCLI",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "PackCore", package: "swiftpack-core"),
                 "PackLib",
                 "XcodePacker",
             ]
@@ -40,7 +41,6 @@ let package = Package(
             name: "XcodePacker",
             dependencies: [
                 "PackLib",
-                .product(name: "PackCore", package: "swiftpack-core"),
                 .product(name: "XcodeGenKit", package: "XcodeGen", condition: .when(platforms: [.macOS])),
             ]
         ),
