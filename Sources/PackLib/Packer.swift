@@ -11,7 +11,7 @@ public struct Packer: Sendable {
 
     private func build() async throws {
         let swiftpackDir = URL(fileURLWithPath: "swiftpack")
-        let packageDir = swiftpackDir.appendingPathComponent("package")
+        let packageDir = swiftpackDir.appendingPathComponent(".swiftpack-tmp")
         try? FileManager.default.removeItem(at: packageDir)
         try FileManager.default.createDirectory(at: packageDir, withIntermediateDirectories: true)
 
@@ -32,20 +32,22 @@ public struct Packer: Sendable {
                     name: "\(plan.product)-App",
                     dependencies: [
                         .product(name: "\(plan.product)", package: "RootPackage"),
-                    ],
-                    path: "."
+                    ]
                 ),
             ]
         )\n
         """
         try Data(contents.utf8).write(to: packageSwift)
-        try Data().write(to: packageDir.appendingPathComponent("stub.c"))
+        let sources = packageDir.appendingPathComponent("Sources")
+        try? FileManager.default.createDirectory(at: sources, withIntermediateDirectories: true)
+        try Data().write(to: sources.appendingPathComponent("stub.c"))
 
         let builder = buildSettings.swiftPMInvocation(
             forTool: "build",
             arguments: [
                 "--package-path", packageDir.path,
                 "--scratch-path", ".build",
+                "--product", "\(plan.product)-App",
                 // resolving can cause SwiftPM to overwrite the root package deps
                 // with just the deps needed for the builder package (which is to
                 // say, any "dev dependencies" of the root package may be removed.)
