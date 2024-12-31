@@ -5,6 +5,7 @@ import Version
 import ProjectSpec
 import XcodeGenKit
 import PackLib
+import XcodeProj
 
 public struct XcodePacker {
     public var plan: Plan
@@ -16,8 +17,10 @@ public struct XcodePacker {
     public func createProject() async throws -> URL {
         let targetName = "\(plan.product)-App"
 
-        let projectDir: Path = "swiftpack"
-        try? projectDir.delete()
+        let swiftpackDir: Path = "swiftpack"
+
+        let projectDir: Path = swiftpackDir + ".swiftpack-tmp"
+        try? swiftpackDir.delete()
         try projectDir.mkpath()
 
         let infoPath = projectDir + "Info.plist"
@@ -78,15 +81,61 @@ public struct XcodePacker {
             )
         )
         let generator = ProjectGenerator(project: project)
-        let output = projectDir + "\(plan.product).xcodeproj"
+        let xcodeproj = projectDir + "\(plan.product).xcodeproj"
+        let xcworkspace = swiftpackDir + "\(plan.product).xcworkspace"
         do {
             let current = Path.current
-            Path.current = projectDir
+            Path.current = xcodeproj.parent()
             defer { Path.current = current }
             let xcodeProject = try generator.generateXcodeProject(userName: NSUserName())
-            try xcodeProject.write(path: fromProjectToRoot + output)
+            if let packageRef = xcodeProject.pbxproj.fileReferences.first(where: { $0.name == ".." }) {
+                for group in xcodeProject.pbxproj.groups {
+                    group.children.removeAll(where: { $0.uuid == packageRef.uuid })
+                }
+                xcodeProject.pbxproj.delete(object: packageRef)
+            }
+
+            if let emptyFileRef = xcodeProject.pbxproj.fileReferences.first(where: { $0.path == "empty.c" }),
+               let existingGroup = xcodeProject.pbxproj.groups.first(where: {
+                   $0.children.contains { $0.uuid == emptyFileRef.uuid }
+               }),
+               let existingGroupGroup = xcodeProject.pbxproj.groups.first(where: {
+                   $0.children.contains { $0.uuid == existingGroup.uuid }
+               }) {
+                existingGroupGroup.children.removeAll(where: { $0.uuid == existingGroup.uuid })
+                existingGroupGroup.children.insert(emptyFileRef, at: 0)
+                xcodeProject.pbxproj.delete(object: existingGroup)
+            }
+
+            try xcodeProject.write(path: Path(xcodeproj.lastComponent))
         }
-        return output.url
+
+        do {
+            let current = Path.current
+            Path.current = xcworkspace.parent()
+            defer { Path.current = current }
+
+            let xcworkspaceDirectory = xcworkspace.parent()
+            let fromWorkspaceToSelf = try Path(".").relativePath(from: xcworkspaceDirectory).withName()
+            let fromWorkspaceToProject = try xcodeproj.relativePath(from: xcworkspaceDirectory).withName()
+            let workspace = XCWorkspace(data: .init(children: [
+                .file(.init(location: .container(fromWorkspaceToSelf.string))),
+                .file(.init(location: .group(fromWorkspaceToProject.string))),
+            ]))
+            try workspace.write(path: Path(xcworkspace.lastComponent))
+        }
+
+        return xcworkspace.url
     }
 }
+
+extension Path {
+    fileprivate func withName() -> Path {
+        // eg if curr dir is Foo, this converts "." to "../Foo"
+        // which includes the name in the path, and therefore
+        // in the Xcode navigator
+        self.parent() + self.absolute().lastComponent
+    }
+}
+
 #endif
