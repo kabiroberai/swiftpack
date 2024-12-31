@@ -69,9 +69,9 @@ public struct BuildSettings: Sendable {
             baseArguments = []
         } else {
             #if os(macOS)
-            // xcrun/libxcselect (via the /usr/bin/swift trampoline) is very trigger-happy
+            // xcrun/libxcrun (via the /usr/bin/swift trampoline) is very trigger-happy
             // to add SDKROOT=.../MacOSX.sdk to our invocations. We avoid this by
-            // 1) invoking the real swiftc executable (located with `xcrun -f`) and
+            // 1) invoking the real swift executable (located with `xcrun -f`) and
             // 2) explicitly removing SDKROOT from the env, as it may be inherited
             // through the `swift run pack` invocation.
             process.executableURL = try await Self.swiftURL.value
